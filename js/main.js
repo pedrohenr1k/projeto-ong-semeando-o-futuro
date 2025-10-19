@@ -2,11 +2,13 @@
 (function() {
     'use strict';
 
-    /* 1. LÓGICA DE SPA (SINGLE PAGE APPLICATION)
+    /**
+     * 1. LÓGICA DE SPA (SINGLE PAGE APPLICATION)
      * Carrega o conteúdo das outras páginas dinamicamente.
      */
     const initSpa = () => {
-        const navLinks = document.querySelectorAll('header nav a');
+        // Seleciona apenas os links de navegação que não são externos
+        const navLinks = document.querySelectorAll('header nav a[href^="/"], header nav a[href^="."]');
         const mainContent = document.querySelector('main');
 
         const loadPageContent = async (url) => {
@@ -19,7 +21,7 @@
                 const newMainContent = newDoc.querySelector('main').innerHTML;
                 mainContent.innerHTML = newMainContent;
                 
-                // Re-inicializa os scripts do formulário na nova página
+                // Re-inicializa os scripts do formulário na nova página, se houver
                 initFormScripts();
 
             } catch (error) {
@@ -38,23 +40,21 @@
         });
     };
 
-    /* 2. SISTEMA DE VERIFICAÇÃO DE FORMULÁRIO
+    /**
+     * 2. SISTEMA DE VERIFICAÇÃO DE FORMULÁRIO
      * Agrupa todas as funcionalidades relacionadas ao formulário.
      */
     const initFormScripts = () => {
         const form = document.getElementById('form-cadastro');
         if (!form) return; // Só executa se o formulário existir
 
-        // Funcionalidade 2.1: Restringir campos para aceitar apenas números
         initNumericOnlyInputs(form);
 
-        // Funcionalidade 2.2: Validar o formulário no envio
         form.setAttribute('novalidate', true);
         form.addEventListener('submit', (event) => {
             event.preventDefault();
             const feedbackDiv = document.getElementById('form-feedback');
             
-            // Limpa mensagens antigas
             feedbackDiv.style.display = 'none';
             feedbackDiv.textContent = '';
             
@@ -63,25 +63,22 @@
             if (isFormValid) {
                 showFeedbackMessage('Cadastro enviado com sucesso!', 'success');
                 form.reset();
-                clearAllErrors(form); // Garante que as bordas voltem ao normal
+                clearAllErrors(form);
             } else {
                 showFeedbackMessage('Por favor, corrija os campos destacados.', 'error');
             }
         });
     };
 
-    // Função que força os campos a aceitarem apenas números
     const initNumericOnlyInputs = (form) => {
         const numericFields = form.querySelectorAll('#cpf, #cep, #telefone');
         numericFields.forEach(field => {
             field.addEventListener('input', () => {
-                // Remove qualquer caractere que não seja um dígito
                 field.value = field.value.replace(/\D/g, '');
             });
         });
     };
 
-    // Função principal que valida todos os campos
     const validateAllFields = (form) => {
         let allValid = true;
         clearAllErrors(form);
@@ -111,24 +108,46 @@
         return allValid;
     };
 
-
-    /* 3. FUNÇÕES AUXILIARES DE VALIDAÇÃO E FEEDBACK
+    /**
+     * 3. CONTROLE DE TEMA (MODO ESCURO)
+     * Gerencia a troca de tema e salva a preferência do usuário.
      */
-    
-    // Mostra a mensagem principal de sucesso ou erro
+    const initThemeSwitcher = () => {
+        const themeToggle = document.getElementById('theme-toggle');
+        if (!themeToggle) return; // Só executa se o seletor existir
+
+        const currentTheme = localStorage.getItem('theme');
+        if (currentTheme) {
+            document.documentElement.setAttribute('data-theme', currentTheme);
+            if (currentTheme === 'dark') themeToggle.checked = true;
+        }
+
+        themeToggle.addEventListener('change', () => {
+            if (themeToggle.checked) {
+                document.documentElement.setAttribute('data-theme', 'dark');
+                localStorage.setItem('theme', 'dark');
+            } else {
+                document.documentElement.setAttribute('data-theme', 'light');
+                localStorage.setItem('theme', 'light');
+            }
+        });
+    };
+
+    /**
+     * 4. FUNÇÕES AUXILIARES DE FEEDBACK
+     */
     const showFeedbackMessage = (message, type) => {
         const feedbackDiv = document.getElementById('form-feedback');
+        if(!feedbackDiv) return;
         feedbackDiv.textContent = message;
-        feedbackDiv.className = type; // 'success' ou 'error'
+        feedbackDiv.className = type;
         feedbackDiv.style.display = 'block';
 
-        // Esconde a mensagem após 4 segundos
         setTimeout(() => {
             feedbackDiv.style.display = 'none';
         }, 4000);
     };
     
-    // Mostra a mensagem de erro específica abaixo de cada campo
     const showFieldError = (field, message) => {
         const errorSpan = document.createElement('span');
         errorSpan.className = 'error-message';
@@ -137,23 +156,22 @@
         field.classList.add('error-field');
     };
 
-    // Limpa todas as mensagens de erro dos campos
     const clearAllErrors = (form) => {
         form.querySelectorAll('.error-message').forEach(span => span.remove());
         form.querySelectorAll('.error-field').forEach(field => field.classList.remove('error-field'));
     };
     
-    // Funções de validação específicas
     const isValidEmail = (email) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
     const isValidCPF = (cpf) => /^\d{11}$/.test(cpf.replace(/[^\d]+/g, ''));
 
-
-    /* 4. INICIALIZAÇÃO
+    /**
+     * 5. INICIALIZAÇÃO GERAL
      * Aguarda o DOM estar pronto para executar os scripts.
      */
     document.addEventListener('DOMContentLoaded', () => {
         initSpa();
-        initFormScripts(); // Executa para a página inicial
+        initFormScripts(); // Executa para a página carregada inicialmente
+        initThemeSwitcher(); // Executa para a página carregada inicialmente
     });
 
 })();
